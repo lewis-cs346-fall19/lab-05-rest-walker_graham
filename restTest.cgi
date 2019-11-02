@@ -8,7 +8,7 @@ import MySQLdb
 import passwords
 
 #cgitb.enable()
-form = cgi.FieldStorage()
+#form = cgi.FieldStorage()
 
 def front():
 	print("Status: 200 OK")
@@ -53,7 +53,7 @@ def foo():
 
 def redir():
 	print("Status: 302 Redirect")
-	print("Location: front")
+	print("Location: pickles")
 	print()
 
 def jsontest():
@@ -70,30 +70,47 @@ def pickles():
 	print("Content-Type: application/json")
 	print()
 
-	for a in os.environ:
-		print('Var: ', a, 'Value: ', os.getenv(a))
-	print("all done")
-	
-	if 'REQUEST_METHOD' in os.environ['REQUEST_METHOD']:
-		method = os.environ['REQUEST_METHOD'].value
-		print(method)
+	print(os.environ['REQUEST_METHOD'])
 
-	conn = MySQLdb.connect(host = passwords.SQL_HOST,
+	if os.environ['REQUEST_METHOD'] == 'POST':
+		form = cgi.FieldStorage()
+		print("POST")
+		print("here")
+		first = form['first'].value
+		print(first)
+		last = form['last'].value
+		pickles = form['numpickles'].value
+		conn = MySQLdb.connect(host = passwords.SQL_HOST,
+                                user = passwords.SQL_USER,
+                                passwd = passwords.SQL_PASSWD,
+                                db = "baseddata")
+		cursor = conn.cursor()
+		cursor.execute("INSERT INTO pickles(firstname, lastname, numpickles) VALUES(%s, %s, %s);", (first, last, pickles))
+		conn.commit()
+		cursor.close()
+		conn.close()
+		os.environ['REQUEST_METHOD'] = 'GET'
+		print("Status: 302 Redirect")
+		print("Location: pickles")
+		print()
+	else:
+
+		conn = MySQLdb.connect(host = passwords.SQL_HOST,
 				user = passwords.SQL_USER,
 				passwd = passwords.SQL_PASSWD,
 				db = "baseddata")
-	cursor = conn.cursor()
-	cursor.execute("SELECT * FROM pickles;")
-	results = cursor.fetchall()
-	cursor.close()
-	conn.close()
-	row = []
-	for rec in results:
-		row.append({"id": rec[0], "first": rec[1], "last": rec[2], "pickles": rec[3],
-			    "url": "http://ec2-54-88-136-27.compute-1.amazonaws.com/cgi-bin/restTest.cgi/pickles/"+str(rec[0])})
-		results_json = json.dumps(row, indent=2)
+		cursor = conn.cursor()
+		cursor.execute("SELECT * FROM pickles;")
+		results = cursor.fetchall()
+		cursor.close()
+		conn.close()
+		row = []
+		for rec in results:
+			row.append({"id": rec[0], "first": rec[1], "last": rec[2], "pickles": rec[3],
+				    "url": "http://ec2-54-88-136-27.compute-1.amazonaws.com/cgi-bin/restTest.cgi/pickles/"+str(rec[0])})
+			results_json = json.dumps(row, indent=2)
 	
-	print(results_json)
+		print(results_json)
 
 def picklessingle():
 	print("Status: 200 OK")
